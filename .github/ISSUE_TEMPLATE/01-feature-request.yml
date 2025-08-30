@@ -1,0 +1,77 @@
+name: "🚀 Feature Request"
+description: "Suggest a new feature or enhancement for Rise Gaming Takistan Life"
+title: "[FEATURE] "
+labels: ["feature", "needs-review"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Feature Request
+        Thank you for suggesting a new feature! Please provide details below.
+  
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Prerequisites
+      description: Please confirm before submitting
+      options:
+        - label: I have searched existing issues to ensure this hasn't been requested
+          required: true
+        - label: This feature aligns with the server's roleplay focus
+          required: true
+  
+  - type: input
+    id: summary
+    attributes:
+      label: Feature Summary
+      description: A clear, one-line description of the feature
+      placeholder: "e.g., Add vehicle rental system for civilians"
+    validations:
+      required: true
+  
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Explain the issue or gap this feature would address
+      placeholder: "Currently players have difficulty with..."
+    validations:
+      required: true
+  
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Solution
+      description: Detail how this feature would work
+      placeholder: "The feature would work by..."
+    validations:
+      required: true
+  
+  - type: dropdown
+    id: faction
+    attributes:
+      label: Primary Affected Faction
+      description: Which faction would benefit most?
+      options:
+        - "Civilians"
+        - "Police/NATO"
+        - "Insurgent"
+        - "OPFOR/TLA"
+        - "ESU"
+        - "PMC"
+        - "All Factions"
+        - "Administrative/Staff"
+    validations:
+      required: true
+  
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority Level
+      description: How important is this feature?
+      options:
+        - "Low - Nice to have"
+        - "Medium - Would improve gameplay"
+        - "High - Important for server balance"
+    validations:
+      required: true
