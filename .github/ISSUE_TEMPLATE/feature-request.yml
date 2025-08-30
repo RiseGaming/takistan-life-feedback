@@ -1,0 +1,124 @@
+name: 🚀 Feature Request
+description: Suggest a new feature or enhancement for Rise Gaming Takistan Life
+title: "[FEATURE] "
+labels: ["feature-request", "needs-review"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Feature Request
+        
+        Thank you for suggesting a new feature! Please provide as much detail as possible to help us understand your idea.
+
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Prerequisites
+      description: Please confirm you have completed these steps before submitting
+      options:
+        - label: I have searched existing issues to ensure this feature hasn't been requested
+          required: true
+        - label: I have reviewed the server rules and this feature aligns with our roleplay focus
+          required: true
+
+  - type: input
+    id: feature-title
+    attributes:
+      label: Feature Title
+      description: A clear, concise title for your feature request
+      placeholder: "Add helicopter rental system for civilians"
+    validations:
+      required: true
+
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: Detailed Description
+      description: Provide a detailed explanation of the feature you'd like to see implemented
+      placeholder: |
+        Describe the feature in detail:
+        - What would it do?
+        - How would it work?
+        - What would players see/experience?
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use Case & Benefits
+      description: Explain why this feature would be valuable and how it would benefit the community
+      placeholder: |
+        - Who would use this feature?
+        - What problems would it solve?
+        - How would it improve the roleplay experience?
+        - What benefits would it bring to different player types (civilian, police, military)?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: player-type
+    attributes:
+      label: Primary Player Type Affected
+      description: Which type of players would benefit most from this feature?
+      options:
+        - Civilians
+        - Police/Law Enforcement
+        - Military/Armed Forces
+        - All Player Types
+        - Administrators/Staff
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Suggested Priority
+      description: How important do you think this feature is?
+      options:
+        - Low - Nice to have enhancement
+        - Medium - Would improve gameplay experience
+        - High - Important for server balance/functionality
+        - Critical - Essential for server operation
+    validations:
+      required: true
+
+  - type: textarea
+    id: implementation-ideas
+    attributes:
+      label: Implementation Ideas (Optional)
+      description: Any thoughts on how this could be implemented? Include technical considerations if you have them.
+      placeholder: |
+        - Could be added to existing systems like...
+        - Might require new UI elements such as...
+        - Could work similar to features on other servers...
+        - Technical considerations...
+    validations:
+      required: false
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Examples or References (Optional)
+      description: References to similar features on other servers, mods, or games
+      placeholder: |
+        - Similar feature on [Server Name] works like...
+        - Reference video/screenshot: [URL]
+        - Inspired by [Game/Mod Name]...
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other information that might be relevant to this feature request
+      placeholder: |
+        - Server performance considerations
+        - Interaction with existing features
+        - Potential challenges or limitations
+        - Community feedback you've gathered
+    validations:
+      required: false
