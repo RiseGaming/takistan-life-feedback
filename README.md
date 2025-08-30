@@ -24,7 +24,7 @@ Have ideas for server improvements, community events, rule changes, or quality o
 
 ## 🎮 About Rise Gaming Takistan Life
 
-Rise Gaming Takistan Life is an Arma 3 roleplay server focused on creating immersive civilian, police, and military experiences in the Takistan setting. Our community values:
+Rise Gaming Takistan Life is an advanced Arma 3 roleplay server featuring a complex 6-faction system with intricate gameplay mechanics including territory control, government systems, and economic interactions. Our community values:
 
 - **Realistic roleplay** - Authentic interactions and scenarios
 - **Fair gameplay** - Balanced mechanics for all player types

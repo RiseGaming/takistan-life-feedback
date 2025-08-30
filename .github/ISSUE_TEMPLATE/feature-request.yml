@@ -54,7 +54,7 @@ body:
         - Who would use this feature?
         - What problems would it solve?
         - How would it improve the roleplay experience?
-        - What benefits would it bring to different player types (civilian, police, military)?
+        - What benefits would it bring to different factions (Civilian, Police/NATO, Insurgent, OPFOR/TLA, ESU, PMC)?
     validations:
       required: true
 
@@ -65,9 +65,12 @@ body:
       description: Which type of players would benefit most from this feature?
       options:
         - Civilians
-        - Police/Law Enforcement
-        - Military/Armed Forces
-        - All Player Types
+        - Police/NATO
+        - Insurgent
+        - OPFOR/TLA (Takistan Liberation Army)
+        - ESU (Emergency Services Unit)
+        - PMC (Private Military Contractor)
+        - All Factions
         - Administrators/Staff
     validations:
       required: true

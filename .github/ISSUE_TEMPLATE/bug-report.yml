@@ -91,11 +91,14 @@ body:
       description: Which player role(s) experience this bug?
       options:
         - Civilian
-        - Police/Law Enforcement  
-        - Military/Armed Forces
-        - All Roles
+        - Police/NATO
+        - Insurgent
+        - OPFOR/TLA (Takistan Liberation Army)
+        - ESU (Emergency Services Unit)
+        - PMC (Private Military Contractor)
+        - All Factions
         - Administrative/Staff
-        - Unknown/Not Role-Specific
+        - Unknown/Not Faction-Specific
     validations:
       required: true
 

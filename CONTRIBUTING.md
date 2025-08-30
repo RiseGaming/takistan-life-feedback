@@ -134,10 +134,10 @@ Need assistance with contributing?
 Understanding our server helps create better contributions:
 
 **Server Focus**
-- Serious roleplay environment
-- Civilian, police, and military interactions
-- Takistan map setting
-- Balanced gameplay mechanics
+- Advanced 6-faction roleplay environment
+- Complex faction interactions (Civilian, Police/NATO, Insurgent, OPFOR/TLA, ESU, PMC)
+- Takistan map setting with 27 capturable territories
+- Sophisticated gameplay mechanics including economy, government, and medical systems
 
 **Technical Constraints**
 - Arma 3 engine limitations
