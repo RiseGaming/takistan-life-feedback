@@ -1,0 +1,178 @@
+name: 🐛 Bug Report
+description: Report a bug or issue with the Rise Gaming Takistan Life server
+title: "[BUG] "
+labels: ["bug", "needs-triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Bug Report
+        
+        Thank you for reporting a bug! Please provide detailed information to help us reproduce and fix the issue.
+        
+        Please provide detailed information to help us reproduce and fix the issue.
+
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Prerequisites
+      description: Please confirm you have completed these steps before submitting
+      options:
+        - label: I have searched existing issues to ensure this bug hasn't been reported
+          required: true
+        - label: This is a legitimate bug report that affects normal gameplay
+          required: true
+        - label: I have verified this issue persists across multiple sessions/restarts
+          required: true
+
+  - type: textarea
+    id: bug-summary
+    attributes:
+      label: Bug Summary
+      description: A clear and concise description of the bug
+      placeholder: "Describe what happened in 1-2 sentences"
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: "Describe what should have happened instead"
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: Actual Behavior
+      description: What actually happened? Include any error messages you saw.
+      placeholder: |
+        - What you observed happening
+        - Any error messages displayed
+        - Unexpected behavior details
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction-steps
+    attributes:
+      label: Steps to Reproduce
+      description: Please provide clear steps to reproduce this bug
+      placeholder: |
+        1. Go to...
+        2. Click on...
+        3. Perform action...
+        4. Observe error/issue
+    validations:
+      required: true
+
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: How often does this occur?
+      description: Select the frequency of this bug
+      options:
+        - Always (100% of the time)
+        - Frequently (more than 50% of the time)
+        - Sometimes (less than 50% of the time)
+        - Rarely (hard to reproduce)
+        - Only happened once
+    validations:
+      required: true
+
+  - type: dropdown
+    id: affected-role
+    attributes:
+      label: Affected Player Role
+      description: Which player role(s) experience this bug?
+      options:
+        - Civilian
+        - Police/NATO
+        - Insurgent
+        - OPFOR/TLA (Takistan Liberation Army)
+        - ESU (Emergency Services Unit)
+        - PMC (Private Military Contractor)
+        - All Factions
+        - Administrative/Staff
+        - Unknown/Not Faction-Specific
+    validations:
+      required: true
+
+  - type: input
+    id: server-info
+    attributes:
+      label: Server Information
+      description: When did this occur? Include date, time, and approximate player count if known
+      placeholder: "e.g., March 15th, 2024 around 8:30 PM EST, ~25 players online"
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment Details
+      description: Your game setup and system information
+      value: |
+        - **Arma 3 Version:** 
+        - **Operating System:** 
+        - **Mods Loaded:** 
+        - **Graphics Settings:** 
+        - **Connection Type:** 
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact Assessment
+      description: How does this bug affect gameplay?
+      placeholder: |
+        - Does it break immersion?
+        - Does it affect server balance?
+        - Does it impact other players?
+        - How severe is the problem?
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence (Optional)
+      description: Screenshots, videos, or log files that demonstrate the issue
+      placeholder: |
+        - Screenshot URLs or drag-and-drop images here
+        - Video links showing the bug
+        - Relevant log file excerpts
+        - Any other supporting evidence
+    validations:
+      required: false
+
+  - type: textarea
+    id: workarounds
+    attributes:
+      label: Workarounds (Optional)
+      description: Any temporary solutions or workarounds you've discovered
+      placeholder: |
+        - Temporary fixes you've found
+        - Ways to avoid triggering the bug
+        - Alternative methods to achieve intended result
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other information that might be helpful
+      placeholder: |
+        - Similar issues you've experienced
+        - When this bug first appeared
+        - Whether it affects multiple players
+        - Any other relevant details
+    validations:
+      required: false
