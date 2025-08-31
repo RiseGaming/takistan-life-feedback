@@ -10,7 +10,7 @@ body:
     attributes:
       value: |
         ## General Suggestion
-        
+
         Thank you for sharing your ideas! Use this template for suggestions about server improvements, community events, rule changes, or other enhancements that don't fit into specific feature requests.
 
   - type: checkboxes

@@ -10,9 +10,9 @@ body:
     attributes:
       value: |
         ## Bug Report
-        
+
         Thank you for reporting a bug! Please provide detailed information to help us reproduce and fix the issue.
-        
+
         Please provide detailed information to help us reproduce and fix the issue.
 
   - type: checkboxes
@@ -118,11 +118,11 @@ body:
       label: Environment Details
       description: Your game setup and system information
       value: |
-        - **Arma 3 Version:** 
-        - **Operating System:** 
-        - **Mods Loaded:** 
-        - **Graphics Settings:** 
-        - **Connection Type:** 
+        - **Arma 3 Version:**
+        - **Operating System:**
+        - **Mods Loaded:**
+        - **Graphics Settings:**
+        - **Connection Type:**
       render: markdown
     validations:
       required: true

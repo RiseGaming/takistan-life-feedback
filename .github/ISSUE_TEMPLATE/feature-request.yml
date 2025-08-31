@@ -10,7 +10,7 @@ body:
     attributes:
       value: |
         ## Feature Request
-        
+
         Thank you for suggesting a new feature! Please provide as much detail as possible to help us understand your idea.
 
   - type: checkboxes
