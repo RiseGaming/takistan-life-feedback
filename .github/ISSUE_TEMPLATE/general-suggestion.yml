@@ -1,10 +1,5 @@
 name: 💡 General Suggestion
 description: Share ideas for server improvements, events, or community enhancements
-title: "[SUGGESTION] "
-labels: ["suggestion", "needs-review"]
-issue_type: 28673403
-assignees: []
-
 body:
   - type: markdown
     attributes:
