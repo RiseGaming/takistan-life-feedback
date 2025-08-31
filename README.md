@@ -7,13 +7,13 @@ Welcome to the official feedback repository for the **Rise Gaming Takistan Life*
 We encourage all community members to participate in making Rise Gaming Takistan Life better. When submitting feedback, please choose the appropriate category:
 
 ### 🚀 Feature Requests
-Have an idea for a new feature, mission type, or gameplay mechanic? Use our **Feature Request** template to share your ideas with detailed descriptions and potential benefits to the community.
+Have an idea for a new feature, mission type, or gameplay mechanic? Use our **[Feature Request](https://github.com/RiseGaming/takistan-life-feedback/issues/new?template=feature-request.yml)** template to share your ideas with detailed descriptions and potential benefits to the community.
 
 ### 🐛 Bug Reports
-Encountered something broken or not working as expected? Submit a **Bug Report** with clear steps to reproduce the issue, including server information and any error messages.
+Encountered something broken or not working as expected? Submit a **[Bug Report](https://github.com/RiseGaming/takistan-life-feedback/issues/new?template=bug-report.yml)** with clear steps to reproduce the issue, including server information and any error messages.
 
 ### 💡 General Suggestions
-Have ideas for server improvements, community events, rule changes, or quality of life enhancements? Use our **General Suggestions** template to share your thoughts.
+Have ideas for server improvements, community events, rule changes, or quality of life enhancements? Use our **[General Suggestions](https://github.com/RiseGaming/takistan-life-feedback/issues/new?template=general-suggestion.yml)** template to share your thoughts.
 
 ## 🎯 Before You Submit
 
@@ -49,6 +49,6 @@ Violations may result in restrictions from this repository and our gaming commun
 
 ---
 
-**Thank you for helping make Rise Gaming Takistan Life the best it can be!** 🇦🇫
+**Thank you for helping make Rise Gaming Takistan Life the best it can be!**
 
 *This repository is maintained by the Rise Gaming Takistan Life administrative team. Response times may vary based on submission complexity and current development priorities.*
