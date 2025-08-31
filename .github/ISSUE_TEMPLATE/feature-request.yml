@@ -1,5 +1,6 @@
 name: 🚀 Feature Request
 description: Suggest a new feature or enhancement for Rise Gaming Takistan Life
+type: Feature
 body:
   - type: markdown
     attributes:

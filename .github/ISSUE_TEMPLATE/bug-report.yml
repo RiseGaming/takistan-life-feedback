@@ -1,5 +1,6 @@
 name: 🐛 Bug Report
 description: Report a bug or issue with the Rise Gaming Takistan Life server
+type: Bug
 body:
   - type: markdown
     attributes:

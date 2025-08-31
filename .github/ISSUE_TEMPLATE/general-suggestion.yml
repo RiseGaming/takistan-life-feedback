@@ -1,5 +1,6 @@
 name: 💡 General Suggestion
 description: Share ideas for server improvements, events, or community enhancements
+type: Suggestion
 body:
   - type: markdown
     attributes:
