@@ -2,7 +2,6 @@ name: 🐛 Bug Report
 description: Report a bug or issue with the Rise Gaming Takistan Life server
 title: "[BUG] "
 labels: ["bug", "needs-triage"]
-issue_type: 16963627
 assignees: []
 
 body:
