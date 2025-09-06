@@ -276,11 +276,22 @@ jobs:
           RANKING_PAYLOAD: "${{ steps.build.outputs.result }}"
         with:
           script: |
-            // Best practices: keep content under 2000 chars, avoid tables (Discord doesn't support),
-            // use simple Markdown (bold, italics, links), and avoid mentions.
-            const raw = process.env.RANKING_PAYLOAD || '';
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            // Validate inputs
+            const webhook = process.env.DISCORD_WEBHOOK;
+            if (!webhook) {
+              core.setFailed('DISCORD_WEBHOOK is not set.');
+              return;
+            }
+
             let data;
-            try { data = raw ? JSON.parse(raw) : null; } catch { data = null; }
+            try {
+              data = JSON.parse(process.env.RANKING_PAYLOAD || '');
+            } catch {
+              data = null;
+            }
             if (!data) {
               core.warning('No ranking payload from previous step; skipping Discord post.');
               return;
@@ -288,39 +299,77 @@ jobs:
 
             const { timestamp, features = [], suggestions = [], bugs = [], repoUrl } = data;
 
+            // Build Discord-friendly content (no tables; simple Markdown; trim to <= ~2000 chars)
             const fmtSection = (title, arr, maxItems) => {
               if (!arr.length) return `\n**${title}**\n_No open issues in this category._`;
-              const lines = arr.slice(0, maxItems).map(i => `• [#${i.number}](${i.url}) ${i.title} — 👍 ${i.score} (by ${i.author || 'unknown'})`);
+              const lines = arr
+                .slice(0, maxItems)
+                .map(i => `• [#${i.number}](${i.url}) ${i.title} — 👍 ${i.score} (by ${i.author || 'unknown'})`);
               return `\n**${title}**\n` + lines.join('\n');
             };
 
-            // Start with optimistic per-category counts; dynamically shrink to fit under 2000 chars
             let maxPerSection = 10;
             let content;
             for (;;) {
-              content = `**Issue Ranking Update** — ${timestamp}\n` +
-                        `Ranks open issues by total 👍 across the issue and its comments; grouped by Issue Type; Outreach excluded.\n` +
-                        `Full ranking: [issue_ranking.md](${repoUrl})\n` +
-                        fmtSection('Feature Requests', features, maxPerSection) +
-                        fmtSection('Suggestions', suggestions, maxPerSection) +
-                        fmtSection('Bugs', bugs, maxPerSection);
+              content =
+                `**Issue Ranking Update** — ${timestamp}\n` +
+                `Ranks open issues by total 👍 across the issue and its comments; grouped by Issue Type; Outreach excluded.\n` +
+                `Full ranking: [issue_ranking.md](${repoUrl})\n` +
+                fmtSection('Feature Requests', features, maxPerSection) +
+                fmtSection('Suggestions', suggestions, maxPerSection) +
+                fmtSection('Bugs', bugs, maxPerSection);
               if (content.length <= 1900 || maxPerSection === 0) break;
               maxPerSection = Math.max(0, Math.floor(maxPerSection * 0.7));
             }
             if (maxPerSection === 0) {
-              // Fall back to terse message with just counts
               const counts = `Features: ${features.length}, Suggestions: ${suggestions.length}, Bugs: ${bugs.length}`;
               content = `**Issue Ranking Update** — ${timestamp}\n${counts}\nFull ranking: [issue_ranking.md](${repoUrl})`;
             }
 
-            const webhook = process.env.DISCORD_WEBHOOK;
-            if (!webhook) {
-              core.setFailed('DISCORD_WEBHOOK is not set.');
-              return;
+            // State file location and helpers
+            const statePath = '.github/discord-nightly-state.json';
+            const branch = 'main';
+
+            let previousMessageId = null;
+            let stateSha = null;
+
+            // Read existing state (best-effort)
+            try {
+              const cur = await github.rest.repos.getContent({ owner, repo, path: statePath, ref: branch });
+              if (!Array.isArray(cur.data)) {
+                const curStr = Buffer.from(cur.data.content || '', cur.data.encoding || 'base64').toString('utf8');
+                stateSha = cur.data.sha;
+                try {
+                  const parsed = JSON.parse(curStr);
+                  if (parsed && typeof parsed.message_id === 'string' && parsed.message_id.trim()) {
+                    previousMessageId = parsed.message_id.trim();
+                  }
+                } catch {
+                  core.warning('Existing discord-nightly-state.json is not valid JSON; ignoring.');
+                }
+              }
+            } catch (err) {
+              if (err && err.status === 404) {
+                core.info('discord-nightly-state.json does not exist yet; will create it.');
+              } else {
+                core.warning(`Could not read state file: ${err.message}`);
+              }
             }
 
-            // Use global fetch (Node 18/20) to POST webhook
-            const resp = await fetch(webhook, {
+            // Best-effort delete previous message
+            if (previousMessageId) {
+              const delUrl = `${webhook}/messages/${previousMessageId}`;
+              try {
+                const delResp = await fetch(delUrl, { method: 'DELETE' });
+                core.info(`Discord delete previous message ${previousMessageId} status: ${delResp.status}`);
+              } catch (e) {
+                core.warning(`Failed to delete previous Discord message ${previousMessageId}: ${e.message}`);
+              }
+            }
+
+            // Post new message with embeds suppressed (flags: 4 = SUPPRESS_EMBEDS)
+            const postUrl = `${webhook}?wait=true`;
+            const postResp = await fetch(postUrl, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -329,9 +378,41 @@ jobs:
                 flags: 4
               })
             });
-            if (!resp.ok) {
-              const txt = await resp.text().catch(() => '');
-              core.setFailed(`Discord webhook failed (${resp.status}): ${txt}`);
-            } else {
-              core.info('Posted ranking summary to Discord.');
+
+            if (!postResp.ok) {
+              const txt = await postResp.text().catch(() => '');
+              core.setFailed(`Discord webhook post failed (${postResp.status}): ${txt}`);
+              return;
+            }
+
+            const posted = await postResp.json().catch(() => null);
+            if (!posted || !posted.id) {
+              core.setFailed('Discord webhook response missing id.');
+              return;
+            }
+            const newMessageId = String(posted.id);
+            core.info(`Posted new Discord message id: ${newMessageId}`);
+
+            // Write/update state file in the repo
+            const newState = {
+              message_id: newMessageId,
+              posted_at: new Date().toISOString()
+            };
+            const newStateContentB64 = Buffer.from(JSON.stringify(newState, null, 2), 'utf8').toString('base64');
+
+            try {
+              const res = await github.rest.repos.createOrUpdateFileContents({
+                owner,
+                repo,
+                path: statePath,
+                message: 'chore: update Discord nightly message id',
+                content: newStateContentB64,
+                branch,
+                sha: stateSha || undefined,
+                committer: { name: 'github-actions[bot]', email: 'github-actions[bot]@users.noreply.github.com' },
+                author: { name: 'github-actions[bot]', email: 'github-actions[bot]@users.noreply.github.com' }
+              });
+              core.info(`Updated ${statePath}`);
+            } catch (e) {
+              core.setFailed(`Failed to write state file: ${e.message}`);
             }
