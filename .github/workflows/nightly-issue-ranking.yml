@@ -1,0 +1,260 @@
+name: Nightly Issue Ranking
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Midnight UTC
+  workflow_dispatch:
+
+concurrency:
+  group: nightly-issue-ranking
+  cancel-in-progress: false
+
+permissions:
+  issues: read
+  contents: write
+
+jobs:
+  build-ranking:
+    name: Generate and Commit Ranking
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate ranking and update file if changed
+        uses: actions/github-script@v7
+        with:
+          retries: 3
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            // -------- Helpers --------
+            function nowUtcIso() {
+              return new Date().toISOString().replace(/\..+Z$/, 'Z');
+            }
+
+            function thumbsFromReactionGroups(groups) {
+              if (!groups) return 0;
+              const g = groups.find(grp => grp.content === 'THUMBS_UP');
+              return g && g.users ? (g.users.totalCount || 0) : 0;
+            }
+
+            async function fetchIssuesPage(afterCursor) {
+              const query = `
+                query($owner: String!, $name: String!, $after: String) {
+                  repository(owner: $owner, name: $name) {
+                    issues(states: OPEN, first: 100, after: $after, orderBy: {field: CREATED_AT, direction: ASC}) {
+                      totalCount
+                      pageInfo { hasNextPage endCursor }
+                      nodes {
+                        number
+                        title
+                        url
+                        createdAt
+                        updatedAt
+                        author { login }
+                        issueType { name }
+                        reactionGroups { content users { totalCount } }
+                        comments(first: 100) {
+                          pageInfo { hasNextPage endCursor }
+                          nodes { reactionGroups { content users { totalCount } } }
+                        }
+                      }
+                    }
+                  }
+                  rateLimit { remaining resetAt }
+                }
+              `;
+              const variables = { owner, name: repo, after: afterCursor || null };
+              const res = await github.graphql(query, variables);
+              return res;
+            }
+
+            async function fetchAllIssues() {
+              const issues = [];
+              let after = null;
+              let total = 0;
+              let page = 0;
+              while (true) {
+                page++;
+                const res = await fetchIssuesPage(after);
+                const pageIssues = res.repository.issues.nodes || [];
+                total = res.repository.issues.totalCount;
+                issues.push(...pageIssues);
+                core.info(`Fetched page ${page} — ${pageIssues.length} issues (accumulated: ${issues.length}/${total}). Rate remaining: ${res.rateLimit.remaining}, reset at ${res.rateLimit.resetAt}`);
+                if (!res.repository.issues.pageInfo.hasNextPage) break;
+                after = res.repository.issues.pageInfo.endCursor;
+              }
+              return { issues, total };
+            }
+
+            async function sumCommentThumbs(number, firstPage) {
+              // Sum from first page
+              let sum = 0;
+              if (firstPage && firstPage.nodes) {
+                for (const n of firstPage.nodes) {
+                  sum += thumbsFromReactionGroups(n.reactionGroups || []);
+                }
+              }
+              if (!firstPage || !firstPage.pageInfo || !firstPage.pageInfo.hasNextPage) {
+                return sum;
+              }
+              // Paginate remaining comments
+              let after = firstPage.pageInfo.endCursor;
+              while (true) {
+                const q = `
+                  query($owner:String!, $name:String!, $number:Int!, $after:String) {
+                    repository(owner:$owner, name:$name) {
+                      issue(number:$number) {
+                        comments(first: 100, after: $after) {
+                          pageInfo { hasNextPage endCursor }
+                          nodes { reactionGroups { content users { totalCount } } }
+                        }
+                      }
+                    }
+                    rateLimit { remaining resetAt }
+                  }
+                `;
+                const v = { owner, name: repo, number, after };
+                const r = await github.graphql(q, v);
+                const nodes = r.repository.issue.comments.nodes || [];
+                for (const n of nodes) {
+                  sum += thumbsFromReactionGroups(n.reactionGroups || []);
+                }
+                core.info(`Paginated comments for #${number}: +${nodes.length} comments. Rate remaining: ${r.rateLimit.remaining}`);
+                if (!r.repository.issue.comments.pageInfo.hasNextPage) break;
+                after = r.repository.issue.comments.pageInfo.endCursor;
+              }
+              return sum;
+            }
+
+            function makeRow(i) {
+              const issueText = `[#${i.number} ${i.title}](${i.url})`;
+              const opened = new Date(i.createdAt).toISOString();
+              const updated = new Date(i.updatedAt).toISOString();
+              return `| ${i.number} | ${issueText} | ${i.score} | ${i.author || ''} | ${opened} | ${updated} |`;
+            }
+
+            function renderSection(title, items) {
+              let md = `\n\n## ${title}\n`;
+              if (!items.length) {
+                md += `\n_No open issues in this category._`;
+                return md;
+              }
+              md += `\n| # | Issue | 👍 | Author | Opened | Last Updated |\n|---|---|---:|---|---|---|\n`;
+              for (const it of items) md += makeRow(it) + '\n';
+              return md;
+            }
+
+            // -------- Main --------
+            try {
+              const { issues: allIssues, total: totalOpen } = await fetchAllIssues();
+
+              core.info(`Total open issues fetched (GraphQL repository.issues): ${totalOpen}`);
+
+              const features = [];
+              const suggestions = [];
+              const bugs = [];
+
+              let excludedOutreach = 0;
+              let excludedUnsupported = 0;
+              let excludedMissing = 0;
+
+              let thumbsFeature = 0;
+              let thumbsSuggestion = 0;
+              let thumbsBug = 0;
+
+              for (const it of allIssues) {
+                const t = it.issueType ? (it.issueType.name || '') : '';
+                if (!t) { excludedMissing++; continue; }
+                if (t === 'Outreach') { excludedOutreach++; continue; }
+                if (!['Feature','Suggestion','Bug'].includes(t)) { excludedUnsupported++; continue; }
+
+                const issueThumbs = thumbsFromReactionGroups(it.reactionGroups || []);
+                const commentThumbs = await sumCommentThumbs(it.number, it.comments);
+                const totalThumbs = issueThumbs + commentThumbs;
+
+                const entry = {
+                  number: it.number,
+                  url: it.url,
+                  title: it.title.replace(/\|/g, '¦'), // avoid breaking table
+                  author: it.author ? (it.author.login || '') : '',
+                  createdAt: it.createdAt,
+                  updatedAt: it.updatedAt,
+                  score: totalThumbs,
+                };
+
+                if (t === 'Feature') { features.push(entry); thumbsFeature += totalThumbs; }
+                else if (t === 'Suggestion') { suggestions.push(entry); thumbsSuggestion += totalThumbs; }
+                else if (t === 'Bug') { bugs.push(entry); thumbsBug += totalThumbs; }
+              }
+
+              core.info(`Included counts — Features: ${features.length}, Suggestions: ${suggestions.length}, Bugs: ${bugs.length}`);
+              core.info(`Excluded — Outreach: ${excludedOutreach}, Unsupported type: ${excludedUnsupported}, Missing type: ${excludedMissing}`);
+              core.info(`Thumbs totals — Features: ${thumbsFeature}, Suggestions: ${thumbsSuggestion}, Bugs: ${thumbsBug}`);
+
+              const sortFn = (a, b) => (b.score - a.score) || (a.number - b.number);
+              features.sort(sortFn);
+              suggestions.sort(sortFn);
+              bugs.sort(sortFn);
+
+              const timestamp = nowUtcIso();
+              let md = '';
+              md += `<!-- Auto-generated by GitHub Actions. -->\n`;
+              md += `# Issue Ranking — auto-generated at ${timestamp}\n\n`;
+              md += `Ranks open issues by total 👍 across the issue and its comments; grouped by Issue Type; Outreach excluded.\n`;
+
+              md += renderSection('Feature Requests', features);
+              md += renderSection('Suggestions', suggestions);
+              md += renderSection('Bugs', bugs);
+              md += '\n';
+
+              // Compare and commit via Contents API
+              const path = 'issue_ranking.md';
+              const branch = 'main';
+              const newContentB64 = Buffer.from(md, 'utf8').toString('base64');
+
+              let currentSha = null;
+              let unchanged = false;
+              try {
+                const cur = await github.rest.repos.getContent({ owner, repo, path, ref: branch });
+                if (Array.isArray(cur.data)) throw new Error('Path points to a directory; expected a file.');
+                const curStr = Buffer.from(cur.data.content || '', cur.data.encoding || 'base64').toString('utf8');
+                currentSha = cur.data.sha;
+                unchanged = (curStr === md);
+              } catch (err) {
+                if (err.status === 404) {
+                  core.info('issue_ranking.md does not exist yet; will create it.');
+                } else {
+                  throw err;
+                }
+              }
+
+              if (unchanged) {
+                core.info('No changes to issue_ranking.md — skipping commit.');
+                return;
+              }
+
+              const message = `chore: update issue_ranking.md (nightly)`;
+              const commitRes = await github.rest.repos.createOrUpdateFileContents({
+                owner,
+                repo,
+                path,
+                message,
+                content: newContentB64,
+                branch,
+                sha: currentSha || undefined,
+                committer: { name: 'github-actions[bot]', email: 'github-actions[bot]@users.noreply.github.com' },
+                author: { name: 'github-actions[bot]', email: 'github-actions[bot]@users.noreply.github.com' },
+              });
+              core.info(`Committed ${path} to ${branch} at ${commitRes.data.commit.sha}`);
+
+            } catch (error) {
+              if (error && error.status === 403 && /rate limit/i.test(String(error.message))) {
+                core.setFailed(`Rate limit exceeded. Please retry after reset. Details: ${error.message}`);
+              } else {
+                core.setFailed(`Failed to generate ranking: ${error.message}`);
+              }
+            }
+
