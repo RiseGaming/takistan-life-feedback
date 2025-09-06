@@ -300,7 +300,7 @@ jobs:
             for (;;) {
               content = `**Issue Ranking Update** — ${timestamp}\n` +
                         `Ranks open issues by total 👍 across the issue and its comments; grouped by Issue Type; Outreach excluded.\n` +
-                        `Full ranking: ${repoUrl}\n` +
+                        `Full ranking: [issue_ranking.md](${repoUrl})\n` +
                         fmtSection('Feature Requests', features, maxPerSection) +
                         fmtSection('Suggestions', suggestions, maxPerSection) +
                         fmtSection('Bugs', bugs, maxPerSection);
@@ -310,7 +310,7 @@ jobs:
             if (maxPerSection === 0) {
               // Fall back to terse message with just counts
               const counts = `Features: ${features.length}, Suggestions: ${suggestions.length}, Bugs: ${bugs.length}`;
-              content = `**Issue Ranking Update** — ${timestamp}\n${counts}\nFull ranking: ${repoUrl}`;
+              content = `**Issue Ranking Update** — ${timestamp}\n${counts}\nFull ranking: [issue_ranking.md](${repoUrl})`;
             }
 
             const webhook = process.env.DISCORD_WEBHOOK;
