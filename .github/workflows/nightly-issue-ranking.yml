@@ -24,6 +24,8 @@ jobs:
       - name: Generate ranking and update file if changed
         uses: actions/github-script@v7
         with:
+          id: build
+          result-encoding: string
           retries: 3
           script: |
             const owner = context.repo.owner;
@@ -233,22 +235,31 @@ jobs:
 
               if (unchanged) {
                 core.info('No changes to issue_ranking.md — skipping commit.');
-                return;
+              } else {
+                const message = `chore: update issue_ranking.md (nightly)`;
+                const commitRes = await github.rest.repos.createOrUpdateFileContents({
+                  owner,
+                  repo,
+                  path,
+                  message,
+                  content: newContentB64,
+                  branch,
+                  sha: currentSha || undefined,
+                  committer: { name: 'github-actions[bot]', email: 'github-actions[bot]@users.noreply.github.com' },
+                  author: { name: 'github-actions[bot]', email: 'github-actions[bot]@users.noreply.github.com' },
+                });
+                core.info(`Committed ${path} to ${branch} at ${commitRes.data.commit.sha}`);
               }
 
-              const message = `chore: update issue_ranking.md (nightly)`;
-              const commitRes = await github.rest.repos.createOrUpdateFileContents({
-                owner,
-                repo,
-                path,
-                message,
-                content: newContentB64,
-                branch,
-                sha: currentSha || undefined,
-                committer: { name: 'github-actions[bot]', email: 'github-actions[bot]@users.noreply.github.com' },
-                author: { name: 'github-actions[bot]', email: 'github-actions[bot]@users.noreply.github.com' },
-              });
-              core.info(`Committed ${path} to ${branch} at ${commitRes.data.commit.sha}`);
+              // return data for downstream steps (Discord message)
+              const payload = {
+                timestamp,
+                features,
+                suggestions,
+                bugs,
+                repoUrl: `https://github.com/${owner}/${repo}/blob/${branch}/${path}`,
+              };
+              return JSON.stringify(payload);
 
             } catch (error) {
               if (error && error.status === 403 && /rate limit/i.test(String(error.message))) {
@@ -258,3 +269,69 @@ jobs:
               }
             }
 
+      - name: Post Discord summary
+        uses: actions/github-script@v7
+        env:
+          DISCORD_WEBHOOK: "${{ secrets.DISCORD_WEBHOOK }}"
+        with:
+          script: |
+            // Best practices: keep content under 2000 chars, avoid tables (Discord doesn't support),
+            // use simple Markdown (bold, italics, links), and avoid mentions.
+            const out = JSON.parse(core.getInput('result') || '{}'); // placeholder; not used
+            const prev = JSON.parse(process.env['GITHUB_STEP_SUMMARY'] || '{}'); // not used
+            const raw = `${{ steps.build.outputs.result }}`;
+            let data;
+            try { data = JSON.parse(raw); } catch { data = null; }
+            if (!data) {
+              core.warning('No ranking payload from previous step; skipping Discord post.');
+              return;
+            }
+
+            const { timestamp, features = [], suggestions = [], bugs = [], repoUrl } = data;
+
+            const fmtSection = (title, arr, maxItems) => {
+              if (!arr.length) return `\n**${title}**\n_No open issues in this category._`;
+              const lines = arr.slice(0, maxItems).map(i => `• [#${i.number}](${i.url}) ${i.title} — 👍 ${i.score} (by ${i.author || 'unknown'})`);
+              return `\n**${title}**\n` + lines.join('\n');
+            };
+
+            // Start with optimistic per-category counts; dynamically shrink to fit under 2000 chars
+            let maxPerSection = 10;
+            let content;
+            for (;;) {
+              content = `**Issue Ranking Update** — ${timestamp}\n` +
+                        `Ranks open issues by total 👍 across the issue and its comments; grouped by Issue Type; Outreach excluded.\n` +
+                        `Full ranking: ${repoUrl}\n` +
+                        fmtSection('Feature Requests', features, maxPerSection) +
+                        fmtSection('Suggestions', suggestions, maxPerSection) +
+                        fmtSection('Bugs', bugs, maxPerSection);
+              if (content.length <= 1900 || maxPerSection === 0) break;
+              maxPerSection = Math.max(0, Math.floor(maxPerSection * 0.7));
+            }
+            if (maxPerSection === 0) {
+              // Fall back to terse message with just counts
+              const counts = `Features: ${features.length}, Suggestions: ${suggestions.length}, Bugs: ${bugs.length}`;
+              content = `**Issue Ranking Update** — ${timestamp}\n${counts}\nFull ranking: ${repoUrl}`;
+            }
+
+            const webhook = process.env.DISCORD_WEBHOOK;
+            if (!webhook) {
+              core.setFailed('DISCORD_WEBHOOK is not set.');
+              return;
+            }
+
+            // Use global fetch (Node 18/20) to POST webhook
+            const resp = await fetch(webhook, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                content,
+                allowed_mentions: { parse: [] }
+              })
+            });
+            if (!resp.ok) {
+              const txt = await resp.text().catch(() => '');
+              core.setFailed(`Discord webhook failed (${resp.status}): ${txt}`);
+            } else {
+              core.info('Posted ranking summary to Discord.');
+            }
